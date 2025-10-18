@@ -4,49 +4,52 @@
   <meta charset="UTF-8">
   <title>CoRamTix Status Monitor</title>
   <script>
-    // Discord Webhook URL
     const webhookURL = "https://discord.com/api/webhooks/1429028428639637548/ATe0k-CuzwTGRXMAioG0kA-V4nj3_m4PJzT7cFUtnPoYONVwBitWO2jR3tWvln6xGmir";
 
-    // List of services (replace GitHub placeholders with real links)
     const services = [
       { name: "Panel", url: "https://panel3.coramtix.in/" },
-      { name: "Node 1", url: "https://github.com/" },
-      { name: "Node 2", url: "https://github.com/" },
-      { name: "Node 3", url: "https://github.com/" },
-      { name: "Node 4", url: "https://github.com/" },
-      { name: "Node 5", url: "https://github.com/" }
+      { name: "Node 1", url: "https://github.com/YourRepo1" },
+      { name: "Node 2", url: "https://github.com/YourRepo2" },
+      { name: "Node 3", url: "https://github.com/YourRepo3" },
+      { name: "Node 4", url: "https://github.com/YourRepo4" },
+      { name: "Node 5", url: "https://github.com/YourRepo5" }
     ];
 
-    // Function to check status
-    async function checkStatus() {
-      let results = [];
+    // Store the last known status
+    const lastStatus = {};
 
+    async function checkStatus() {
       for (const service of services) {
+        let status;
         try {
-          const res = await fetch(service.url, { method: "GET", mode: "no-cors" });
-          results.push({ name: service.name, status: "🟢 UP" });
+          await fetch(service.url, { method: "GET", mode: "no-cors" });
+          status = "🟢 UP";
         } catch (e) {
-          results.push({ name: service.name, status: "🔴 DOWN" });
+          status = "🔴 DOWN";
+        }
+
+        // Only send if status changed
+        if (lastStatus[service.name] !== status) {
+          lastStatus[service.name] = status;
+          sendDiscordMessage(service.name, status);
         }
       }
+    }
 
-      // Build Discord embed message
+    async function sendDiscordMessage(serviceName, status) {
       const message = {
         embeds: [
           {
-            title: "🛰️ Service Status Update",
-            color: 0x7289da,
-            fields: results.map(r => ({
-              name: r.name,
-              value: r.status,
-              inline: true
-            })),
+            title: `🛰️ ${serviceName} Status Changed`,
+            color: status === "🟢 UP" ? 0x00ff00 : 0xff0000,
+            fields: [
+              { name: serviceName, value: status, inline: true }
+            ],
             footer: { text: "Last checked: " + new Date().toLocaleString() }
           }
         ]
       };
 
-      // Send to Discord webhook
       await fetch(webhookURL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -54,13 +57,15 @@
       });
     }
 
-    // Run on page load and every 1 minute
+    // Initial check
     window.onload = checkStatus;
-    setInterval(checkStatus, 1 * 60 * 1000); // 1 minute interval
+
+    // Check every 1 minute
+    setInterval(checkStatus, 1 * 60 * 1000);
   </script>
 </head>
 <body>
   <h2>🛰️ CoRamTix Status Monitor</h2>
-  <p>This page will automatically send updates to your Discord webhook every 1 minute.</p>
+  <p>Will send a Discord message only when a node goes UP or DOWN.</p>
 </body>
 </html>
